@@ -1,0 +1,28 @@
+NoiseAlert
+
+A "noise activated dialer" application. Uses a media-recorder to listen on
+microphone and periodically query the volume level. If a configured threshold
+is exceeded a pre-configured number is called.
+
+The application has a main activity with a custom view object representing
+a graphical sound volume display and a canned preferences activity. All user
+interactions are triggered through the menu:
+
+Start/Stop: start or stop monitoring
+Test: activate monitoring without calling alert number to help calibrate
+  noise threshold.
+Panic: dial alert number immediately
+Settings: Bring up preferences screen with the following settings:
+
+Alert Phone Number: number to be called if threshold is exceeded or Panic
+  menu item is selected.
+Sound Threshold: Noise level threshold from 1-9
+Sleep Interval: optional sleep time in between periods of active monitoring 
+  (to save power)
+Enable Graphics: enable/disable graphical sound volume display (to save power)
+
+Author: Bernhard Suter (Bernhard.R.Suter-at-gmail-dot-com)
+License: http://www.apache.org/licenses/LICENSE-2.0
+Source: http://code.google.com/p/android-labs/source/browse/#svn/trunk/NoiseAlert
+
+September 2008: Initial release for the Android platform running on T-Mobile G1.
