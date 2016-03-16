@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2008 Google Inc.
  *
+ * Heavily modified 2016 by Gernot Hillier <gernot@hillier.de>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
