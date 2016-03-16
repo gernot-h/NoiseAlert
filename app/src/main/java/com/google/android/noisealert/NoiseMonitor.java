@@ -41,6 +41,7 @@ public class NoiseMonitor extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onBind",Toast.LENGTH_SHORT).show();
         // TODO: Return the communication channel to the service.
         return null;
         //throw new UnsupportedOperationException("Not yet implemented");
@@ -48,6 +49,7 @@ public class NoiseMonitor extends Service {
 
     @Override
     public void onCreate() {
+        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onCreate",Toast.LENGTH_SHORT).show();
         mSensor = new SoundMeter();
     }
 
@@ -55,14 +57,15 @@ public class NoiseMonitor extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         mSensor.start();
         mHandler.postDelayed(mPollTask, 300);
-        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"gestartet",Toast.LENGTH_SHORT).show();
+        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onStartCmd",Toast.LENGTH_SHORT).show();
         return START_REDELIVER_INTENT;
     }
 
     @Override
     public void onDestroy() {
-        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"destroy",Toast.LENGTH_SHORT).show();
+        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onDestroy",Toast.LENGTH_SHORT).show();
         mSensor.stop();
+        mHandler.removeCallbacks(mPollTask);
     }
 
 

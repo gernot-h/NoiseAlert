@@ -35,6 +35,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 
 public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	/* constants */
@@ -48,7 +49,6 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	private boolean mRunning = false;
 	private boolean mTestMode = false;
 	private int mTickCount = 0;
-	private int mHitCount =0;
 
 	/** config state **/
 	private int mThreshold;
@@ -66,7 +66,7 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	private SoundLevelView mDisplay;
 
 	/* data source */
-/*	private SoundMeter mSensor;*/
+	private SoundMeter mSensor;
 	
 	/* SMS remote control */
 	private SmsRemote mRemote;
@@ -78,30 +78,13 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	};
 	private Runnable mPollTask = new Runnable() {
 		public void run() {
-/*			double amp = mSensor.getAmplitude();
-			if (mTestMode) updateDisplay("testing...", amp);
-			else           updateDisplay("monitoring...", amp);
-
-			if ((amp > mThreshold) && !mTestMode) {
-				mHitCount++;
-				if (mHitCount > 5){
-					callForHelp();
-					return;
-				}
-			}
+			double amp = mSensor.getAmplitude();
+			updateDisplay("testing...", amp);
 
 			mTickCount++;
 			setActivityLed(mTickCount% 2 == 0);
-			
-			if ((mTestMode || mPollDelay > 0) && mTickCount > 100) {
-				if (mTestMode) {
-					stop();
-				} else {
-					sleep();
-				}
-			} else {
-				mHandler.postDelayed(mPollTask, POLL_INTERVAL);
-			}*/
+
+			mHandler.postDelayed(mPollTask, POLL_INTERVAL);
 		}
 	};
 	/** Called when the activity is first created. */
@@ -115,7 +98,7 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 		mStatusView = (TextView) findViewById(R.id.status);
 		mActivityLed = (ImageView) findViewById(R.id.activity_led);
 
-		/*mSensor = new SoundMeter();*/
+		mSensor = new SoundMeter();
 		mDisplay = (SoundLevelView) findViewById(R.id.volume);
 		mRemote = new SmsRemote();
 		
@@ -155,7 +138,7 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		super.onPrepareOptionsMenu(menu);
 		menu.findItem(R.id.test).setEnabled(!mRunning);
-		if (mRunning) {
+		if (mRunning || mTestMode) {
 			menu.findItem(R.id.start_stop).setTitle(R.string.stop);
 		} else {
 			menu.findItem(R.id.start_stop).setTitle(R.string.start);
@@ -173,7 +156,7 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 			startActivity(prefs);
 			break;
 		case R.id.start_stop:
-			if (!mRunning) {
+			if (!mRunning && !mTestMode) {
 
 				if (mPhoneNumber.length() == 0) {
 					showDialog(NO_NUM_DIALOG_ID);
@@ -190,8 +173,12 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 			}
 			break;
 		case R.id.test:
-			mTestMode = true;
-			start();
+			if (!mTestMode) {
+				mTestMode = true;
+				start();
+			} else {
+				Toast.makeText(this, "Test already running...", Toast.LENGTH_SHORT).show();
+			}
 			break;
 		case R.id.panic:
 			callForHelp();
@@ -235,16 +222,18 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	}
 
 	private void start() {
-		mTickCount = 0;
-		mHitCount = 0;
-	/*	mSensor.start();*/
 		setActivityLed(true);
 		if (!mWakeLock.isHeld()) {
 			mWakeLock.acquire();
 		}
-		mHandler.postDelayed(mPollTask, POLL_INTERVAL);
-		Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
-		this.startService(noiseMonitor);
+		if (!mTestMode) {
+			Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
+			this.startService(noiseMonitor);
+		} else {
+			mTickCount = 0;
+			mSensor.start();
+			mHandler.postDelayed(mPollTask, POLL_INTERVAL);
+		}
 	}
 
 	private void stop() {
@@ -253,20 +242,16 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 		}
 		mHandler.removeCallbacks(mSleepTask);
 		mHandler.removeCallbacks(mPollTask);
-		/*mSensor.stop();*/
+		mSensor.stop();
 		mDisplay.setLevel(0, 0);
 		updateDisplay("stopped...", 0.0);
 		setActivityLed(false);
 		mRunning = false;
 		mTestMode = false;
-		Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
-	}
-
-	private void sleep() {
-		/*mSensor.stop();*/
-		updateDisplay("paused...", 0.0);
-		setActivityLed(false);
-		mHandler.postDelayed(mSleepTask, 1000*mPollDelay);
+		if (!mTestMode) {
+			Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
+			this.stopService(noiseMonitor);
+		}
 	}
 
 	private void readApplicationPreferences() {
