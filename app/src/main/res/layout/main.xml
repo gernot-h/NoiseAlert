@@ -23,13 +23,6 @@
     		android:layout_height="wrap_content"
     		android:layout_centerInParent="true" 
     	>
-    	<ImageView 
-    	  android:id="@+id/activity_led"
-          android:layout_width="wrap_content" 
-    	  android:layout_height="wrap_content"
-    	  android:padding="10sp"
-    	  android:visibility="invisible"
-    	  />
    			<com.google.android.noisealert.SoundLevelView
     			android:id="@+id/volume"
     			android:layout_width="43sp"

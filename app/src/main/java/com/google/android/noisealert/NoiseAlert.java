@@ -20,11 +20,8 @@ package com.google.android.noisealert;
 
 import com.google.android.noisealert.SmsRemote.SmsRemoteReceiver;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -32,8 +29,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
@@ -43,19 +38,15 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	/* constants */
 	private static final String LOG_TAG = "NoiseAlert";
 	private static final int POLL_INTERVAL = 300;
-	private static final int NO_NUM_DIALOG_ID=1;
 	private static final String[] REMOTE_CMDS = {"start", "stop", "panic"};
 
 	/** running state **/
 	private boolean mAutoResume = false;
 	private boolean mRunning = false;
 	private boolean mTestMode = false;
-	private int mTickCount = 0;
 
 	/** config state **/
 	private int mThreshold;
-	private int mPollDelay;
-	private String mPhoneNumber;
 	private String mSmsSecurityCode;
 	
 	private PowerManager.WakeLock mWakeLock;
@@ -64,7 +55,6 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 
 	/* References to view elements */
 	private TextView mStatusView;
-	private ImageView mActivityLed;
 	private SoundLevelView mDisplay;
 
 	/* data source */
@@ -73,18 +63,10 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	/* SMS remote control */
 	private SmsRemote mRemote;
 
-	private Runnable mSleepTask = new Runnable() {
-		public void run() {
-			start();
-		}
-	};
 	private Runnable mPollTask = new Runnable() {
 		public void run() {
 			double amp = mSensor.getAmplitude();
 			updateDisplay("testing...", amp);
-
-			mTickCount++;
-			setActivityLed(mTickCount% 2 == 0);
 
 			mHandler.postDelayed(mPollTask, POLL_INTERVAL);
 		}
@@ -98,7 +80,6 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 
 		setContentView(R.layout.main);
 		mStatusView = (TextView) findViewById(R.id.status);
-		mActivityLed = (ImageView) findViewById(R.id.activity_led);
 
 		mSensor = new SoundMeter();
 		mDisplay = (SoundLevelView) findViewById(R.id.volume);
@@ -159,11 +140,6 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 			break;
 		case R.id.start_stop:
 			if (!mRunning && !mTestMode) {
-
-				if (mPhoneNumber.length() == 0) {
-					showDialog(NO_NUM_DIALOG_ID);
-					break;
-				}
 				mAutoResume = true;
 				mRunning = true;
 				mTestMode = false;
@@ -195,12 +171,10 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 
 	public void receive(String cmd) {
 		if (cmd == "start" & !mRunning) {
-			if (mPhoneNumber.length() != 0) {
-				mAutoResume = true;
-				mRunning = true;
-				mTestMode = false;
-				start();
-			}
+			mAutoResume = true;
+			mRunning = true;
+			mTestMode = false;
+			start();
 		} else if (cmd == "stop" & mRunning) {
 			mAutoResume = false;
 			mRunning = false;
@@ -210,21 +184,7 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 		}
 	}
 	
-	@Override
-	protected Dialog onCreateDialog(int id) {
-		if (id == NO_NUM_DIALOG_ID) {
-			return new AlertDialog.Builder(this)
-			.setIcon(R.drawable.icon)
-			.setTitle(R.string.no_num_title)
-			.setMessage(R.string.no_num_msg)
-			.setNeutralButton(R.string.ok, null)
-			.create();
-		}
-		else return null;
-	}
-
 	private void start() {
-		setActivityLed(true);
 		if (!mWakeLock.isHeld()) {
 			mWakeLock.acquire();
 		}
@@ -232,7 +192,6 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 			Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
 			this.startService(noiseMonitor);
 		} else {
-			mTickCount = 0;
 			mSensor.start();
 			mHandler.postDelayed(mPollTask, POLL_INTERVAL);
 		}
@@ -242,12 +201,10 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 		if (mWakeLock.isHeld()) {
 			mWakeLock.release();
 		}
-		mHandler.removeCallbacks(mSleepTask);
 		mHandler.removeCallbacks(mPollTask);
 		mSensor.stop();
 		mDisplay.setLevel(0, 0);
 		updateDisplay("stopped...", 0.0);
-		setActivityLed(false);
 		mRunning = false;
 		mTestMode = false;
 		if (!mTestMode) {
@@ -258,12 +215,8 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 
 	private void readApplicationPreferences() {
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		mPhoneNumber = prefs.getString("alert_phone_number", null);
-		Log.i(LOG_TAG, "phone number = "+mPhoneNumber);
 		mThreshold = Integer.parseInt(prefs.getString("threshold", null));
 		Log.i(LOG_TAG, "threshold=" + mThreshold);
-		mPollDelay = Integer.parseInt(prefs.getString("sleep", null));
-		Log.i(LOG_TAG, "sleep=" + mPollDelay);
 		mSmsSecurityCode = prefs.getString("sms_security_code", null);
 	}
 
@@ -272,21 +225,10 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 
 		mDisplay.setLevel((int)signalEMA, mThreshold);
 	}
-	
-	private void setActivityLed(boolean on) {
-		mActivityLed.setVisibility( on ? View.VISIBLE : View.INVISIBLE);
-	}
 
 	private void callForHelp() {
-		if (mPhoneNumber.length() == 0) {
-			stop();
-			showDialog(NO_NUM_DIALOG_ID);
-			return;
-		}
 		mAutoResume = false;
 		stop();
-		final Uri number = Uri.fromParts("tel", mPhoneNumber, "");
-		startActivity(new Intent(Intent.ACTION_CALL, number));	
 	}
 
 };
