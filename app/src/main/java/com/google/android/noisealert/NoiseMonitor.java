@@ -27,6 +27,9 @@ public class NoiseMonitor extends Service {
 
     private Handler mHandler = new Handler();
 
+    private static final int POLL_INTERVAL = 300;
+    private static final String LOG_TAG = "NoiseAlert";
+
     /** config state **/
     private int mThreshold = 2;
     private int mHitCount =0;
@@ -37,7 +40,7 @@ public class NoiseMonitor extends Service {
     private Runnable mPollTask = new Runnable() {
         public void run() {
             double amp = mSensor.getAmplitude();
-            Log.i("noiseMonitor", "amp=" + amp);
+            Log.d(LOG_TAG, "amp=" + amp);
 
             if (amp > mThreshold) {
                 mHitCount++;
@@ -47,7 +50,7 @@ public class NoiseMonitor extends Service {
                 }
             }
 
-            mHandler.postDelayed(mPollTask, 300);
+            mHandler.postDelayed(mPollTask, POLL_INTERVAL);
         }
     };
 
@@ -57,7 +60,7 @@ public class NoiseMonitor extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onBind",Toast.LENGTH_SHORT).show();
+        Log.e(LOG_TAG,"NoiseMonitor Service onBind called");
         // TODO: Return the communication channel to the service.
         return null;
         //throw new UnsupportedOperationException("Not yet implemented");
@@ -65,21 +68,21 @@ public class NoiseMonitor extends Service {
 
     @Override
     public void onCreate() {
-        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onCreate",Toast.LENGTH_SHORT).show();
+        Log.i(LOG_TAG,"NoiseMonitor Service created");
         mSensor = new SoundMeter();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         mSensor.start();
-        mHandler.postDelayed(mPollTask, 300);
-        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onStartCmd",Toast.LENGTH_SHORT).show();
+        Log.i(LOG_TAG, "NoiseMonitor Service started, threshold=" + mThreshold);
+        mHandler.postDelayed(mPollTask, POLL_INTERVAL);
         return START_REDELIVER_INTENT;
     }
 
     @Override
     public void onDestroy() {
-        Toast.makeText(NoiseMonitor.this.getApplicationContext(),"noiseMonitor onDestroy",Toast.LENGTH_SHORT).show();
+        Log.i(LOG_TAG,"NoiseMonitor Service stopped");
         mSensor.stop();
         mHandler.removeCallbacks(mPollTask);
     }
