@@ -18,7 +18,6 @@
 
 package com.google.android.noisealert;
 
-import com.google.android.noisealert.SmsRemote.SmsRemoteReceiver;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -34,21 +33,19 @@ import android.preference.PreferenceManager;
 import android.content.SharedPreferences;
 import android.widget.Toast;
 
-public class NoiseAlert extends Activity implements SmsRemoteReceiver {
+public class NoiseAlert extends Activity {
 	/* constants */
 	private static final String LOG_TAG = "NoiseAlert";
 	private static final int POLL_INTERVAL = 300;
-	private static final String[] REMOTE_CMDS = {"start", "stop", "panic"};
 
 	/** running state **/
-	private boolean mAutoResume = false;
 	private boolean mRunning = false;
 	private boolean mTestMode = false;
 
 	/** config state **/
 	private int mThreshold;
-	private String mSmsSecurityCode;
-	
+	private int mHitThreshold;
+
 	private PowerManager.WakeLock mWakeLock;
 
 	private Handler mHandler = new Handler();
@@ -60,9 +57,6 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	/* data source */
 	private SoundMeter mSensor;
 	
-	/* SMS remote control */
-	private SmsRemote mRemote;
-
 	private Runnable mPollTask = new Runnable() {
 		public void run() {
 			double amp = mSensor.getAmplitude();
@@ -83,8 +77,7 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 
 		mSensor = new SoundMeter();
 		mDisplay = (SoundLevelView) findViewById(R.id.volume);
-		mRemote = new SmsRemote();
-		
+
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
 		mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "NoiseAlert");
 	}
@@ -94,20 +87,13 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	public void onResume() {
 		super.onResume();
 		readApplicationPreferences();
-		if (mSmsSecurityCode.length() != 0) {
-			mRemote.register(this, mSmsSecurityCode, REMOTE_CMDS);
-		}
 		mDisplay.setLevel(0, mThreshold);
-		if (mAutoResume) {
-			start();
-		}
 	}
 
 	@Override
 	public void onStop() {
 		super.onStop();
-		stop();
-		mRemote.deregister();
+		stopTest();
 	}
 
 	@Override
@@ -134,32 +120,21 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch(item.getItemId()) {
 		case R.id.settings:
-			Log.i(LOG_TAG, "settings");
 			Intent prefs = new Intent(this, Preferences.class);
 			startActivity(prefs);
 			break;
 		case R.id.start_stop:
 			if (!mRunning && !mTestMode) {
-				mAutoResume = true;
-				mRunning = true;
-				mTestMode = false;
-				start();
+				startService();
 			} else {
-				mAutoResume = false;
-				mRunning = false;
-				stop();
+				if(mRunning)
+					stopService();
+				else
+					stopTest();
 			}
 			break;
 		case R.id.test:
-			if (!mTestMode) {
-				mTestMode = true;
-				start();
-			} else {
-				Toast.makeText(this, "Test already running...", Toast.LENGTH_SHORT).show();
-			}
-			break;
-		case R.id.panic:
-			callForHelp();
+			startTest();
 			break;
 		case R.id.help:
 			Intent myIntent = new Intent();
@@ -169,66 +144,57 @@ public class NoiseAlert extends Activity implements SmsRemoteReceiver {
 		return true;
 	}
 
-	public void receive(String cmd) {
-		if (cmd == "start" & !mRunning) {
-			mAutoResume = true;
-			mRunning = true;
-			mTestMode = false;
-			start();
-		} else if (cmd == "stop" & mRunning) {
-			mAutoResume = false;
-			mRunning = false;
-			stop();
-		} else if (cmd == "panic") {
-			callForHelp();
+	private void startTest() {
+		if (mTestMode) {
+			Toast.makeText(this, "Test already running...", Toast.LENGTH_SHORT).show();
+			return;
 		}
-	}
-	
-	private void start() {
 		if (!mWakeLock.isHeld()) {
 			mWakeLock.acquire();
 		}
-		if (!mTestMode) {
-			Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
-			this.startService(noiseMonitor);
-		} else {
-			mSensor.start();
-			mHandler.postDelayed(mPollTask, POLL_INTERVAL);
-		}
+		mTestMode = true;
+		mSensor.start();
+		mHandler.postDelayed(mPollTask, POLL_INTERVAL);
 	}
 
-	private void stop() {
+	private void startService() {
+		Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
+		noiseMonitor.putExtra("com.google.android.noisealert.Threshold",mThreshold);
+		noiseMonitor.putExtra("com.google.android.noisealert.HitThreshold", mHitThreshold);
+		mRunning = true;
+		this.startService(noiseMonitor);
+	}
+
+	private void stopTest() {
 		if (mWakeLock.isHeld()) {
 			mWakeLock.release();
 		}
+		if (!mTestMode)
+			return;
 		mHandler.removeCallbacks(mPollTask);
 		mSensor.stop();
 		mDisplay.setLevel(0, 0);
 		updateDisplay("stopped...", 0.0);
-		mRunning = false;
 		mTestMode = false;
-		if (!mTestMode) {
-			Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
-			this.stopService(noiseMonitor);
-		}
+	}
+
+	private void stopService() {
+		mRunning = false;
+		Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
+		this.stopService(noiseMonitor);
 	}
 
 	private void readApplicationPreferences() {
 		SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		mThreshold = Integer.parseInt(prefs.getString("threshold", null));
 		Log.i(LOG_TAG, "threshold=" + mThreshold);
-		mSmsSecurityCode = prefs.getString("sms_security_code", null);
+		mHitThreshold = Integer.parseInt(prefs.getString("hit_threshold", null));
+		Log.i(LOG_TAG, "hit_threshold=" + mHitThreshold);
 	}
 
 	private void updateDisplay(String status, double signalEMA) {
 		mStatusView.setText(status);
-
-		mDisplay.setLevel((int)signalEMA, mThreshold);
-	}
-
-	private void callForHelp() {
-		mAutoResume = false;
-		stop();
+		mDisplay.setLevel((int) signalEMA, mThreshold);
 	}
 
 };

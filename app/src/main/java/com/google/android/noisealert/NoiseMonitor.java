@@ -27,12 +27,15 @@ public class NoiseMonitor extends Service {
 
     private Handler mHandler = new Handler();
 
-    private static final int POLL_INTERVAL = 300;
     private static final String LOG_TAG = "NoiseAlert";
+
+    static boolean isRunning;
 
     /** config state **/
     private int mThreshold = 2;
-    private int mHitCount =0;
+    private int mHitThreshold = 2;
+    private int mHitCount = 0;
+    private int mPollInterval = 300;
 
     /* data source */
     private SoundMeter mSensor;
@@ -44,13 +47,13 @@ public class NoiseMonitor extends Service {
 
             if (amp > mThreshold) {
                 mHitCount++;
-                if (mHitCount > 1){
-                    Toast.makeText(NoiseMonitor.this.getApplicationContext(),"laut",Toast.LENGTH_SHORT).show();
+                if (mHitCount > mHitThreshold){
+                    Toast.makeText(NoiseMonitor.this.getApplicationContext(),LOG_TAG+" detected noise",Toast.LENGTH_SHORT).show();
                     mHitCount=0;
                 }
             }
 
-            mHandler.postDelayed(mPollTask, POLL_INTERVAL);
+            mHandler.postDelayed(mPollTask, mPollInterval);
         }
     };
 
@@ -74,9 +77,16 @@ public class NoiseMonitor extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        mSensor.start();
-        Log.i(LOG_TAG, "NoiseMonitor Service started, threshold=" + mThreshold);
-        mHandler.postDelayed(mPollTask, POLL_INTERVAL);
+        if (!isRunning) {
+            isRunning=true;
+            mSensor.start();
+            mThreshold = intent.getIntExtra("com.google.android.noisealert.Threshold", 2);
+            mHitThreshold = intent.getIntExtra("com.google.android.noisealert.HitThreshold", 2);
+            mPollInterval = intent.getIntExtra("com.google.android.noisealert.PollInterval", 300);
+            Log.i(LOG_TAG, "NoiseMonitor Service started, threshold=" + mThreshold + ", hit_threshold=" + mHitThreshold);
+            mHandler.postDelayed(mPollTask, mPollInterval);
+        } else
+            Log.i(LOG_TAG, "NoiseMonitor Service already running, threshold=" + mThreshold + ", hit_threshold=" + mHitThreshold);
         return START_REDELIVER_INTENT;
     }
 
@@ -85,6 +95,7 @@ public class NoiseMonitor extends Service {
         Log.i(LOG_TAG,"NoiseMonitor Service stopped");
         mSensor.stop();
         mHandler.removeCallbacks(mPollTask);
+        isRunning=false;
     }
 
 

@@ -19,14 +19,7 @@
         xmlns:android="http://schemas.android.com/apk/res/android">
         
         <PreferenceCategory
-        	android:title="@string/alert_heading">
-        	<EditTextPreference
-                android:key="alert_phone_number"
-                android:title="@string/alert_phone"
-                android:summary="@string/alert_phone_summary"
-                android:dialogTitle="@string/alert_phone" 
-                android:defaultValue="" />
-                
+        	android:title="@string/monitor_heading">
         	<ListPreference
                 android:key="threshold"
                 android:title="@string/sound_threshold"
@@ -34,7 +27,15 @@
                 android:entries="@array/entries_threshold"
                 android:entryValues="@array/entries_threshold"
                 android:dialogTitle="@string/threshold" 
-                android:defaultValue="5" />
+                android:defaultValue="4" />
+            <ListPreference
+                android:key="hit_threshold"
+                android:title="@string/hit_threshold"
+                android:summary="@string/hit_threshold_summary"
+                android:entries="@array/entries_threshold"
+                android:entryValues="@array/entries_threshold"
+                android:dialogTitle="@string/hit_threshold"
+                android:defaultValue="2" />
             <EditTextPreference
                 android:key="sms_security_code"
                 android:title="@string/security_code"
@@ -42,15 +43,4 @@
                 android:dialogTitle="@string/security_code" 
                 android:defaultValue="" />
         </PreferenceCategory>        
-        <PreferenceCategory
-        	android:title="@string/power_heading">
-        	<ListPreference
-                android:key="sleep"
-                android:title="@string/sleep"
-                android:summary="@string/sleep_summary"
-                android:entries="@array/entries_sleep"
-                android:entryValues="@array/values_sleep"
-                android:dialogTitle="@string/sleep" 
-                android:defaultValue="0" />
-    	</PreferenceCategory>
 </PreferenceScreen>
