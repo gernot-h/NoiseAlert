@@ -36,11 +36,5 @@
                 android:entryValues="@array/entries_threshold"
                 android:dialogTitle="@string/hit_threshold"
                 android:defaultValue="2" />
-            <EditTextPreference
-                android:key="sms_security_code"
-                android:title="@string/security_code"
-                android:summary="@string/security_code_summary"
-                android:dialogTitle="@string/security_code" 
-                android:defaultValue="" />
-        </PreferenceCategory>        
+        </PreferenceCategory>
 </PreferenceScreen>

@@ -14,8 +14,6 @@
 	<string name="sound_threshold_summary">Minimal sound level to regard as noise</string>
     <string name="hit_threshold">Hit Threshold</string>
     <string name="hit_threshold_summary">Number of noisy 300 ms samples before action is trigerred</string>
-	<string name="security_code">SMS Remote Security Code</string>
-	<string name="security_code_summary">Security code to send in SMS messages for remote control commands</string>
 	<string name="display_update">Enable Graphics</string>
 	<string name="display_update_summary">Enable graphical volume meter</string>
     <string name="ok">ok</string>
@@ -23,6 +21,8 @@
     <string name="help_text">
     \n
     \n<big><b>NoiseAlert</b> travel baby monitor</big>\n
+    \n
+    <b>TODO: This help text is left from the original example and simply wrong. Don\'t read it.</b>
     \n
     In combination with a second phone, NoiseAlert can turn an Android cellphone into an improvised baby monitor.
     When running, NoiseAlert monitors the surrounding noise level through the microphone and if the noise exceeds a
