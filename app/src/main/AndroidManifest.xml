@@ -26,15 +26,15 @@
             android:name=".HelpActivity"
             android:label="@string/help_title" />
 
+        <!--            android:process=":noisemonitor"-->
         <service
             android:name=".NoiseMonitor"
-            android:process=":noisemonitor"
             android:enabled="true"
-            android:exported="true" />
+            android:exported="false" />
 
+        <!--            android:process=":noisemonitor" -->
         <receiver
             android:name=".NoiseAlertStartup"
-            android:process=":noisemonitor"
             android:enabled="true"
             android:exported="true">
             <intent-filter>

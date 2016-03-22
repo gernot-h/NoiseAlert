@@ -39,7 +39,6 @@ public class NoiseAlert extends Activity {
 	private static final int POLL_INTERVAL = 300;
 
 	/** running state **/
-	private boolean mRunning = false;
 	private boolean mTestMode = false;
 
 	/** config state **/
@@ -88,6 +87,9 @@ public class NoiseAlert extends Activity {
 		super.onResume();
 		readApplicationPreferences();
 		mDisplay.setLevel(0, mThreshold);
+		if (NoiseMonitor.isRunning) {
+			updateDisplay("Service running...", 0.0);
+		}
 	}
 
 	@Override
@@ -106,8 +108,9 @@ public class NoiseAlert extends Activity {
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		super.onPrepareOptionsMenu(menu);
-		menu.findItem(R.id.test).setEnabled(!mRunning);
-		if (mRunning || mTestMode) {
+		menu.findItem(R.id.test).setVisible(!NoiseMonitor.isRunning);
+		menu.findItem(R.id.test).setEnabled(!NoiseMonitor.isRunning);
+		if (NoiseMonitor.isRunning || mTestMode) {
 			menu.findItem(R.id.start_stop).setTitle(R.string.stop);
 		} else {
 			menu.findItem(R.id.start_stop).setTitle(R.string.start);
@@ -124,10 +127,10 @@ public class NoiseAlert extends Activity {
 			startActivity(prefs);
 			break;
 		case R.id.start_stop:
-			if (!mRunning && !mTestMode) {
+			if (!NoiseMonitor.isRunning && !mTestMode) {
 				startService();
 			} else {
-				if(mRunning)
+				if(NoiseMonitor.isRunning)
 					stopService();
 				else
 					stopTest();
@@ -161,8 +164,8 @@ public class NoiseAlert extends Activity {
 		Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
 		noiseMonitor.putExtra("com.google.android.noisealert.Threshold",mThreshold);
 		noiseMonitor.putExtra("com.google.android.noisealert.HitThreshold", mHitThreshold);
-		mRunning = true;
 		this.startService(noiseMonitor);
+		updateDisplay("Service running...", 0.0);
 	}
 
 	private void stopTest() {
@@ -179,9 +182,9 @@ public class NoiseAlert extends Activity {
 	}
 
 	private void stopService() {
-		mRunning = false;
 		Intent noiseMonitor = new Intent(this, NoiseMonitor.class);
 		this.stopService(noiseMonitor);
+		updateDisplay("stopped...", 0.0);
 	}
 
 	private void readApplicationPreferences() {
