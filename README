@@ -1,28 +1,35 @@
-NoiseAlert
+NoiseMonitor
 
-A "noise activated dialer" application. Uses a media-recorder to listen on
-microphone and periodically query the volume level. If a configured threshold
-is exceeded a pre-configured number is called.
+A "noise trigger" application. Uses a media-recorder to listen on microphone
+and periodically query the volume level. If a configured threshold is exceeded,
+an event will be triggered to wake up the device and/or send an Android
+broadcast. Will keep your CPU awake, so only use it when connected to mains!
+
+This can be used to automate your Android device depending on surrounding noise
+level.
+
+Definitely no eye candy here, built using a lot of ugly code with duplicated
+functionality and deprecated API calls -- forgive me, Java and app programming
+is not my world. BUT it seems to work reliably, so I published it as it might
+be useful for others. And refactoring pull requests are highly welcome. :)
 
 The application has a main activity with a custom view object representing
 a graphical sound volume display and a canned preferences activity. All user
 interactions are triggered through the menu:
 
 Start/Stop: start or stop monitoring
-Test: activate monitoring without calling alert number to help calibrate
+Test: activate monitoring without triggering any action to find right
   noise threshold.
-Panic: dial alert number immediately
-Settings: Bring up preferences screen with the following settings:
+Settings: Bring up preferences screen 
 
-Alert Phone Number: number to be called if threshold is exceeded or Panic
-  menu item is selected.
-Sound Threshold: Noise level threshold from 1-9
-Sleep Interval: optional sleep time in between periods of active monitoring 
-  (to save power)
-Enable Graphics: enable/disable graphical sound volume display (to save power)
+Author: Gernot Hillier <gernot@hillier.de>
+License: http://www.apache.org/licenses/LICENSE-2.0
+
+March 2016: First release, tested on some Android 5.x devices
+
+This code is heavily based on an old Android example called "NoiseAlert":
 
 Author: Bernhard Suter (Bernhard.R.Suter-at-gmail-dot-com)
-License: http://www.apache.org/licenses/LICENSE-2.0
 Source: http://code.google.com/p/android-labs/source/browse/#svn/trunk/NoiseAlert
 
 September 2008: Initial release for the Android platform running on T-Mobile G1.
