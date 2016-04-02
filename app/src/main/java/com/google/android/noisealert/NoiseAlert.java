@@ -78,7 +78,7 @@ public class NoiseAlert extends Activity {
 		mDisplay = (SoundLevelView) findViewById(R.id.volume);
 
 		PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-		mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, "NoiseAlert");
+		mWakeLock = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_TAG);
 	}
 
 	
@@ -200,4 +200,4 @@ public class NoiseAlert extends Activity {
 		mDisplay.setLevel((int) signalEMA, mThreshold);
 	}
 
-};
+}

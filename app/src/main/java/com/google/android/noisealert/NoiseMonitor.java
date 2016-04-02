@@ -1,4 +1,5 @@
 /*
+/*
  * Copyright (C) 2016 Gernot Hillier <gernot@hillier.de>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,17 +18,20 @@
 package com.google.android.noisealert;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.util.Log;
 import android.widget.Toast;
 
 public class NoiseMonitor extends Service {
 
-    private Handler mHandler = new Handler();
-
     private static final String LOG_TAG = "NoiseAlert";
+
+    private Handler mHandler = new Handler();
+    private PowerManager.WakeLock mWakeLock;
 
     static boolean isRunning;
 
@@ -36,6 +40,8 @@ public class NoiseMonitor extends Service {
     private int mHitThreshold = 2;
     private int mHitCount = 0;
     private int mPollInterval = 300;
+    private int mWakeLockDuration = 10;
+    private int mWakeLockDelay = 0;
 
     /* data source */
     private SoundMeter mSensor;
@@ -47,12 +53,24 @@ public class NoiseMonitor extends Service {
 
             if (amp > mThreshold) {
                 mHitCount++;
-                if (mHitCount > mHitThreshold){
-                    Toast.makeText(NoiseMonitor.this.getApplicationContext(),LOG_TAG+" detected noise",Toast.LENGTH_SHORT).show();
-                    mHitCount=0;
+                if (mHitCount > mHitThreshold) {
+                    if (!mWakeLock.isHeld()) {
+                        mWakeLock.acquire();
+                    }
+                    mWakeLockDelay=mWakeLockDuration;
+                    Toast.makeText(NoiseMonitor.this.getApplicationContext(), LOG_TAG + " detected noise", Toast.LENGTH_SHORT).show();
+                    Intent i = new Intent("com.google.android.noisealert.NOISE");
+                    sendBroadcast(i);
+                    mHitCount = 0;
+                }
+            } else {
+                if (mWakeLock.isHeld()) {
+                    mWakeLockDelay--;
+                    if (mWakeLockDelay < 1) {
+                        mWakeLock.release();
+                    }
                 }
             }
-
             mHandler.postDelayed(mPollTask, mPollInterval);
         }
     };
@@ -73,6 +91,9 @@ public class NoiseMonitor extends Service {
     public void onCreate() {
         Log.i(LOG_TAG,"NoiseMonitor Service created");
         mSensor = new SoundMeter();
+        PowerManager pm = (PowerManager) getApplicationContext().getSystemService(Context.POWER_SERVICE);
+        mWakeLock = pm.newWakeLock((PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP), LOG_TAG);
+        mWakeLockDelay = 0;
     }
 
     @Override
@@ -93,6 +114,9 @@ public class NoiseMonitor extends Service {
     @Override
     public void onDestroy() {
         Log.i(LOG_TAG,"NoiseMonitor Service stopped");
+        if (mWakeLock.isHeld()) {
+            mWakeLock.release();
+        }
         mSensor.stop();
         mHandler.removeCallbacks(mPollTask);
         isRunning=false;
