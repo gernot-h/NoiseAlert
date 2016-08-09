@@ -58,7 +58,7 @@ public class NoiseMonitor extends Service {
                         mWakeLock.acquire();
                     }
                     mWakeLockDelay=mWakeLockDuration;
-                    Toast.makeText(NoiseMonitor.this.getApplicationContext(), LOG_TAG + " detected noise", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(NoiseMonitor.this.getApplicationContext(), LOG_TAG + " detected noise", Toast.LENGTH_SHORT).show();
                     Intent i = new Intent("com.google.android.noisealert.NOISE");
                     sendBroadcast(i);
                     mHitCount = 0;
